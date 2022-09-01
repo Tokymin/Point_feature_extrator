@@ -1,4 +1,4 @@
-import os, pdb#, shutil
+import os, pdb  # , shutil
 import numpy as np
 import torch
 
@@ -20,18 +20,17 @@ def torch_set_gpu(gpus):
     if type(gpus) is int:
         gpus = [gpus]
 
-    cuda = all(gpu>=0 for gpu in gpus)
-
+    cuda = all(gpu >= 0 for gpu in gpus)
+    print(torch.__version__)
+    print(torch.cuda.is_available())
     if cuda:
         os.environ['CUDA_VISIBLE_DEVICES'] = ','.join([str(gpu) for gpu in gpus])
-        assert cuda and torch.cuda.is_available(), "%s has GPUs %s unavailable" % (
-            os.environ['HOSTNAME'],os.environ['CUDA_VISIBLE_DEVICES'])
-        torch.backends.cudnn.benchmark = True # speed-up cudnn
-        torch.backends.cudnn.fastest = True # even more speed-up?
-        print( 'Launching on GPUs ' + os.environ['CUDA_VISIBLE_DEVICES'] )
+        assert cuda and torch.cuda.is_available(), " GPUs %s unavailable" % (os.environ['CUDA_VISIBLE_DEVICES'])
+        torch.backends.cudnn.benchmark = True  # speed-up cudnn
+        torch.backends.cudnn.fastest = True  # even more speed-up?
+        print('Launching on GPUs ' + os.environ['CUDA_VISIBLE_DEVICES'])
 
     else:
-        print( 'Launching on CPU' )
+        print('Launching on CPU')
 
     return cuda
-

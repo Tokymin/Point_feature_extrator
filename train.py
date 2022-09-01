@@ -2,6 +2,7 @@ import os, pdb
 import torch
 import torch.optim as optim
 
+from datasets import *
 from tools import common, trainer
 from tools.dataloader import *
 from nets.patchnet import *
@@ -10,8 +11,8 @@ from nets.losses import *
 default_net = "Quad_L2Net_ConfCFS()"
 
 toy_db_debug = """SyntheticPairDataset(
-    ImgFolder('E:/xyw/feature_detector/train_images/'), 
-            'RandomScale(256,1024,can_upscale=True)', 
+    ImgFolder('F:/Toky/Dataset/Endo_colon_unity/photo/'), 
+            'RandomScale(320,320,can_upscale=True)', 
             'RandomTilting(0.5), PixelNoise(25)')"""
 
 db_aachen_flow = "aachen_flow_pairs"
@@ -21,7 +22,7 @@ data_sources = dict(
 )
 
 default_dataloader = """PairLoader(CatPairDataset(`data`),
-    scale   = 'RandomScale(256,1024,can_upscale=True)',
+    scale   = 'RandomScale(320,320,can_upscale=True)',
     distort = 'ColorJitter(0.2,0.2,0.2,0.1)',
     crop    = 'RandomCrop(192)')"""
 
@@ -51,34 +52,27 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser("Train R2D2")
-
     parser.add_argument("--data-loader", type=str, default=default_dataloader)
     parser.add_argument("--train-data", type=str, default=list('D'), nargs='+',
                         choices=set(data_sources.keys()))
     parser.add_argument("--net", type=str, default=default_net, help='network architecture')
-
     parser.add_argument("--pretrained", type=str, default="", help='pretrained model path')
-    parser.add_argument("--save-path", type=str, required=True, default="models/test.pt", help='model save_path path')
-
+    parser.add_argument("--save-path", type=str, default="models/colon_unity_dataset.pt", help='model save_path path')
     parser.add_argument("--loss", type=str, default=default_loss, help="loss function")
     parser.add_argument("--sampler", type=str, default=default_sampler, help="AP sampler")
     parser.add_argument("--N", type=int, default=16, help="patch size for repeatability")
 
     parser.add_argument("--epochs", type=int, default=30, help='number of training epochs')
-    parser.add_argument("--batch-size", "--bs", type=int, default=1, help="batch size")
+    parser.add_argument("--batch-size", "--bs", type=int, default=10, help="batch size")
     parser.add_argument("--learning-rate", "--lr", type=str, default=1e-4)
     parser.add_argument("--weight-decay", "--wd", type=float, default=5e-4)
 
     parser.add_argument("--threads", type=int, default=8, help='number of worker threads')
     parser.add_argument("--gpu", type=int, nargs='+', default=[0], help='-1 for CPU')
-
     args = parser.parse_args()
 
     iscuda = common.torch_set_gpu(args.gpu)
     common.mkdir_for(args.save_path)
-
-    # Create data loader
-    from datasets import *
 
     db = [data_sources[key] for key in args.train_data]
     db = eval(args.data_loader.replace('`data`', ','.join(db)).replace('\n', ''))
@@ -92,7 +86,7 @@ if __name__ == '__main__':
     print(f" ( Model size: {common.model_size(net)/1000:.0f}K parameters )")
 
     # initialization
-    if args.pretrained:
+    if args.pretrained:  # False
         checkpoint = torch.load(args.pretrained, lambda a, b: a)
         net.load_pretrained(checkpoint['state_dict'])
 
