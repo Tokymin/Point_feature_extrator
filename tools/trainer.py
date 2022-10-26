@@ -1,9 +1,14 @@
+import os
 import pdb
+from tensorboardX import SummaryWriter
 from tqdm import tqdm
 from collections import defaultdict
-
 import torch
 import torch.nn as nn
+
+model_prefix = ""
+writer = {}
+epoch = 0
 
 
 class Trainer(nn.Module):
@@ -38,24 +43,18 @@ class Trainer(nn.Module):
 
     def __call__(self):
         self.net.train()
-
         stats = defaultdict(list)
-
         for iter, inputs in enumerate(tqdm(self.loader)):
             inputs = self.todevice(inputs)
-
             # compute gradient and do model update
             self.optimizer.zero_grad()
-
             loss, details = self.forward_backward(inputs)
             if torch.isnan(loss):
                 raise RuntimeError('Loss is NaN')
-
             self.optimizer.step()
-
             for key, val in details.items():
+                writer.add_scalar(key, val, len(self.loader) * epoch + iter)
                 stats[key].append(val)
-
         print(" Summary of losses during this epoch:")
         mean = lambda lis: sum(lis) / len(lis)
         for loss_name, vals in stats.items():

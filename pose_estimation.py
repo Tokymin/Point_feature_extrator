@@ -4,9 +4,7 @@ import numpy as np
 import cv2 as cv
 from path import Path
 import re
-import os
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import pyplot as plt
 
 
 def getKeypoint(keypoints):
@@ -40,8 +38,16 @@ def pose_estimation(K, keypoints1, keypoints2, good_matches):
         points2.append(keypoints2[good_matches[n].trainIdx].pt)
     points1 = np.array(points1)
     points2 = np.array(points2)
-    E, mask = cv.findEssentialMat(points1, points2, K, method=cv.RANSAC, prob=0.999, threshold=1.0)
-    _, R, t, _ = cv.recoverPose(E, points1, points2, K)
+
+    # 绘制点
+
+    E, mask = cv.findEssentialMat(points1, points2, K, method=cv.RANSAC, prob=0.999,
+                                  threshold=1.0)
+
+    if E.shape != (3, 3):  # print(E.shape)
+        print("E.cols != 3 or E.rows != 3")
+        return None, None
+    _, R, t, _ = cv.recoverPose(E, points1, points2, K, mask=mask)
     return R, t
 
 
@@ -59,13 +65,18 @@ def calpose(good_match, pose):
 
 
 def savepose(root, imageIndex_, global_pose_):
-    with open(root + "/position_152.txt", 'a') as f:
-        index = imageIndex_[-1]
-        R = global_pose_[-1][0:3, 0:3]
-        t = global_pose_[-1][0:3, 3]
-        q0, q1, q2, q3 = rot2quaternion(R)
-        line = str(index) + " " + str(t[0]) + " " + str(
-            t[1]) + " " + str(t[2]) + " " + str(q0) + " " + str(q1) + " " + str(q2) + " " + str(q3) + "\n"
+    with open(root + "/OF_based_Key_Points_Extractor.txt", 'a') as f:
+        # index = imageIndex_[-1]
+        # R = global_pose_[-1][0:3, 0:3]
+        # t = global_pose_[-1][0:3, 3]
+        # q0, q1, q2, q3 = rot2quaternion(R)
+        # line = str(t[0]) + " " + str(
+        #     t[1]) + " " + str(t[2]) + " " + str(q0) + " " + str(q1) + " " + str(q2) + " " + str(q3) + "\n"
+        t = global_pose_[-1]
+        line = str(t[0]) + " " + str(
+            t[1]) + " " + str(t[2]) + " " + str(t[3]) + " " + str(t[4]) + " " + str(t[5]) + " " + str(t[6]) + " " \
+               + str(t[7]) + " " + str(t[8]) + " " + str(t[9]) + " " + str(t[10]) + " " + str(t[11]) + "\n"
+
         f.write(line)
     f.close()
 
@@ -86,13 +97,13 @@ def drawFlow(goodgood_matches):
 
         line = line + str(x1) + "," + str(y1) + "," + str(x2) + "," + str(y2) + ","
 
-    with open(root + "/part_coord_152.csv", 'a') as f:
-        f.write(line)
-        f.write("\n")
-    f.close()
+    # with open(root + "/part_coord_i1.csv", 'a') as f:
+    #     f.write(line)
+    #     f.write("\n")
+    # f.close()
 
-    # arrowString = root + "/test_feature_arrowLine/" + "arrow" + img1_num + "-" + img2_num + ".jpg"
-    # cv.imwrite(arrowString, arrow_img)
+    arrowString = root + "/test_feature_arrowLine/" + "arrow" + img1_num + "-" + img2_num + ".jpg"
+    cv.imwrite(arrowString, arrow_img)
 
 
 def calgoodgoodmatch(des1, des2):
@@ -108,13 +119,15 @@ def calgoodgoodmatch(des1, des2):
     for j in range(len(des1)):
         if matches[j].distance < 3 * min_dist:
             good_matches.append(matches[j])
-    if len(good_matches) == 0:
+    if len(good_matches) == 0 or len(good_matches) <= 4:
         return None
     obj = []
     scene = []
+
     for j in range(len(good_matches)):
         obj.append(np.array(keypoints1[good_matches[j].queryIdx].pt))
         scene.append(np.array(keypoints2[good_matches[j].trainIdx].pt))
+
     H, listpoints = cv.findHomography(np.array(obj), np.array(scene), cv.RANSAC, ransacReprojThreshold=4)
     goodgood_matches = []
     for j in range(len(listpoints)):
@@ -143,24 +156,26 @@ def rot2quaternion(R):
 
 
 if __name__ == '__main__':
-    root = r"H:\work\ICIRA\dataset\newframes_152"
+    root = r"F:\Toky\Dataset\Endo_colon_unity\test_for_point_feature\photo4"
     npz = getNpz(root)
     images_path = loadImage(root)
-    K = np.array([728.879, 0, 534.9931, 0, 728.9891, 453.4891, 0, 0, 1]).reshape(3, 3)  # 胃镜内参数
-    # K = np.array([28.879,0,529.9931,0,28.9891,450.4891,0,0,1]).reshape(3,3) # 胃镜内参数
-    # K = np.array([1648.149,0,402.702,0,1514.27,245.472,0,0,1]).reshape(3,3) # 气管镜内参数
-    start_position = np.array([142.15, 55, 107.2]).reshape(3, 1)
+    # K = np.array([156.0418, 0, 178.5604, 0, 155.7529, 181.8043, 0, 0, 1]).reshape(3, 3)  # 肠镜内参数
+    # K = np.array([156.0418, 0, 160, 0, 155.7529, 160, 0, 0, 1]).reshape(3, 3)
+    K = np.array([156.3536121, 0, 160, 0, 157.549850, 160, 0, 0, 1]).reshape(3, 3)  # 胃镜内参数
+
+    start_position = np.array([0, 0, 0]).reshape(3, 1)
     one = np.array([0, 0, 0, 1]).reshape(1, 4)
     pose = np.identity(4)
-    pose[0, 3] = 142.15
-    pose[1, 3] = 74
-    pose[2, 3] = 107.2
-    pose[1, 1] = -0.5
-    pose[1, 2] = 0.866
-    pose[2, 1] = -0.866
-    pose[2, 2] = -0.5
+    pose[0, 3] = 0
+    pose[1, 3] = 0
+    pose[2, 3] = 0
+    pose[0, 0] = 1
+    pose[1, 1] = 1
+    pose[2, 2] = 1
     camera_poses = []
-    camera_poses.append(pose)
+    save_kitti_pose = pose[0:3, :].flatten()
+    camera_poses.append(pose[0:3, :].flatten())
+    camera_poses.append(pose[0:3, :].flatten())
     assert (len(npz) == len(images_path))
     total_match = 0
     correct_match = 0
@@ -190,32 +205,33 @@ if __name__ == '__main__':
         arraykeypoints2 = npz2['keypoints']
         keypoints2 = getKeypoint(arraykeypoints2)
         descriptors2 = npz2['descriptors']
-        img2 = cv.drawKeypoints(img2, keypoints2, img2)
+        # img2 = cv.drawKeypoints(img2, keypoints2, img2)
         goodgoodmatch_ = calgoodgoodmatch(descriptors1, descriptors2)
+
+        # outimage = cv.drawMatches(img1, keypoints1, img2, keypoints2, goodgoodmatch_, outImg=None)
+        # cv.imshow("", outimage[:, :, ::-1])
+        # cv.waitKey(0)
         if goodgoodmatch_ is None or len(goodgoodmatch_) == 0:
             camera_poses.append(camera_poses[i - 1])
-            # global_pose.append(camera_poses)
+            savepose(root, imageIndex, camera_poses)
             imageIndex.append(img2_num)
-            print(True)
+            print("goodgoodmatch_ is None")
             continue
-        # global_pose_, imageIndex_ = calpose(goodgoodmatch_, intrinsic)
-        # print(len(goodgoodmatch_))
         R, t = pose_estimation(K, keypoints1, keypoints2, goodgoodmatch_)
+
+        if R is None:
+            camera_poses.append(camera_poses[i - 1])
+            savepose(root, imageIndex, camera_poses)
+            imageIndex.append(img2_num)
+            print("R is None")
+            continue
         P = np.append(R, t, axis=1)
         P = np.append(P, one, axis=0)
-        pose = np.dot(pose, np.linalg.inv(P))
-        imageIndex.append(img2_num)
-        camera_poses.append(pose)
+        pose = np.dot(pose, np.linalg.inv(P))  # np.linalg.inv(
+        camera_poses.append(pose[0:3, :].flatten())
         # global_pose.append(camera_poses)
-        # imageIndex.append(imageIndex)
-
-    # drawFlow(goodgoodmatch_)
-    savepose(root, imageIndex, camera_poses)
-    end = time.time()
-    times_model_output.append(end - start)
-    print(np.mean(np.array(times_model_output)))
-    # 画surf流
-    # drawFlow(root)
+        # drawFlow(goodgoodmatch_)  # 画surf流
+        savepose(root, imageIndex, camera_poses)
 
     # pos=[]
     # for i in range(len(global_pose)):

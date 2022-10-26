@@ -32,13 +32,12 @@ def pose_estimation(K, keypoints1, keypoints2, good_matches):
 
 def siftDetect(root):
     images_path = loadImage(root)
-
     K = np.array([728.879, 0, 334.9931, 0, 728.9891, 280.4891, 0, 0, 1]).reshape(3, 3)
     # start_position = np.array([142.15, 58.5, 107.2]).reshape(3, 1)
     one = np.array([0, 0, 0, 1]).reshape(1, 4)
     pose = np.identity(4)
-    pose[0, 3] = 141.14;
-    pose[1, 3] = 72.4;
+    pose[0, 3] = 141.14
+    pose[1, 3] = 72.4
     pose[2, 3] = 85.6
     pose[0, 0] = 0.9491
     pose[0, 1] = -0.1753

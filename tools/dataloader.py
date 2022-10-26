@@ -167,11 +167,11 @@ class PairLoader:
 
             # compute a score based on the flow
             x2, y2 = aflow[win1].reshape(-1, 2).T.astype(np.int32)
-            # Check the proportion of valid flow vectors
+            # Check the proportion(比例) of valid flow vectors
             valid = (win2[1].start <= x2) & (x2 < win2[1].stop) \
                     & (win2[0].start <= y2) & (y2 < win2[0].stop)
             score1 = (valid * mask[win1].ravel()).mean()
-            # check the coverage of the second window
+            # check the coverage(覆盖范围) of the second window
             accu2[:] = False
             accu2[Q(y2[valid], win2[0]), Q(x2[valid], win2[1])] = True
             score2 = accu2.mean()
@@ -250,7 +250,7 @@ class PairLoader:
                 result[what] = eval(what)
             except NameError:
                 pass
-        return result
+        return result # img1 img2 aflow mask
 
 
 def threaded_loader(loader, iscuda, threads, batch_size=1, shuffle=True):
@@ -350,13 +350,13 @@ if __name__ == '__main__':
         distort = 'ColorJitter(0.2,0.2,0.2,0.1)',
         crop    = 'RandomCrop(192)')"""
     parser = argparse.ArgumentParser("Tool to debug/visualize the data loader")
-    parser.add_argument("dataloader", type=default_dataloader, help="command to create the data loader")
+    parser.add_argument("dataloader", type=str, default=default_dataloader,
+                        help="command to create the data loader")
     args = parser.parse_args()
 
     from datasets import *
 
-    auto_pairs = lambda db: SyntheticPairDataset(db,
-                                                 'RandomScale(256,1024,can_upscale=True)',
+    auto_pairs = lambda db: SyntheticPairDataset(db, 'RandomScale(256,1024,can_upscale=True)',
                                                  'RandomTilting(0.5), PixelNoise(25)')
 
     loader = eval(args.dataloader)
@@ -369,3 +369,4 @@ if __name__ == '__main__':
         H, W = aflow.shape[-2:]
         flow = (aflow - np.mgrid[:H, :W][::-1]).transpose(1, 2, 0)
         show_flow(tensor2img(data['img1']), tensor2img(data['img2']), flow)
+        # Todo: 加载真实位姿以便做验证，分训练还是验证
