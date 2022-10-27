@@ -24,6 +24,7 @@ along with evo.  If not, see <http://www.gnu.org/licenses/>.
 import argparse
 import csv
 import logging
+import os
 
 import numpy as np
 
@@ -97,7 +98,7 @@ def parser() -> argparse.ArgumentParser:
     output_opts.add_argument(
         "-p",
         "--plot",
-        default=False,
+        default=True,
         action="store_true",
         help="show plot window",
     )
@@ -129,7 +130,7 @@ def parser() -> argparse.ArgumentParser:
     output_opts.add_argument(
         "--ros_map_yaml", help="yaml file of an ROS 2D map image (.pgm/.png)"
                                " that will be drawn into the plot", default=None)
-    output_opts.add_argument("--save_plot", default="F:/Toky/PythonProject/Point_feature_extrator/validate/3Dpath/",
+    output_opts.add_argument("--save_plot", default="./testresult/3Dpath/",
                              help="path to save plot")
     output_opts.add_argument("--serialize_plot", default=None,
                              help="path to serialize plot (experimental)")
@@ -278,7 +279,7 @@ def rpe(traj_ref: PosePath3D, traj_est: PosePath3D,
     ape_result.stats.update({"ape_rotation_std": np.std(ape_metric.rotation_error)})
     # 写入tensorBroad
     writer.add_scalar("ape_rotation_mean", np.mean(ape_metric.rotation_error), metric_index)
-    writer.add_scalar("ape_rotation_std", np.std(ape_metric.rotation_error))
+    writer.add_scalar("ape_rotation_std", np.std(ape_metric.rotation_error), metric_index)
     # 写入csv文件
     write_metric_to_csv(rpe_metric_csv_path, rpe_result.stats)
     write_metric_to_csv(ape_metric_csv_path, ape_result.stats)
@@ -359,6 +360,8 @@ def run(args: argparse.Namespace) -> None:
     )
 
     if args.plot or args.save_plot or args.serialize_plot:
+        if os.path.exists(args.save_plot) == False:
+            os.makedirs(args.save_plot)
         common.model_prefix = model_prefix
         common.test_dataset_index = metric_index
         common.plot_result(args, result, traj_ref,
